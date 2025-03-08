@@ -9,11 +9,15 @@ inputs:
   cache-path:
     description: "Dependencies cache path"
     default: "${{ github.workspace }}/cache"
-    required: true
   extension-path:
-    description:  "Directory where the extension repository is checked out"
+    description: "Directory where the extension repository is checked out"
     default: "."
-    required: true
+  configure-path:
+    description: "Path to configure.py"
+    default: "../configure.py"
+  configure-additional-flags:
+    description: "Additional flags to pass to configure.py"
+    default: "--enable-optimize --enable-auto-versioning"
   os:
     description: "Operating System"
     required: true
@@ -124,7 +128,12 @@ runs:
       run: |
         mkdir -p build
         cd build
-        python ../configure.py --enable-optimize --sdks="${{ inputs.sdks }}" --mms-path="${{ inputs.cache-path }}/metamod-source" --hl2sdk-root="${{ inputs.cache-path }}" --sm-path="${{ inputs.cache-path }}/sourcemod"
+        python ${{ inputs.configure-path }} \
+          --sdks="${{ inputs.sdks }}" \
+          --mms-path="${{ inputs.cache-path }}/metamod-source" \
+          --hl2sdk-root="${{ inputs.cache-path }}" \
+          --sm-path="${{ inputs.cache-path }}/sourcemod" \
+          ${{ inputs.configure-additional-flags }}
         ambuild
 
     - name: Set package path output
