@@ -1,0 +1,141 @@
+name: "Extension builder"
+description: "Builds SourceMod and Metamod:Source extensions with customizable SDK support"
+author: "SRCDSLab"
+branding:
+  icon: "code"
+  color: "gray-dark"
+
+inputs:
+  cache-path:
+    description: "Dependencies cache path"
+    default: "${{ github.workspace }}/cache"
+    required: true
+  os:
+    description: "Operating System"
+    required: true
+  cc:
+    description: "C Compiler"
+    required: true
+  cxx:
+    description: "C++ Compiler"
+    required: true
+  ambuild-ref:
+    description: "AMBuild git ref"
+    required: true
+  mm-ref:
+    description: "Metamod:source git ref"
+    required: true
+  sm-ref:
+    description: "SourceMod git ref"
+    required: true
+  sdks:
+    description: "HL2 sdk space delimited list"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      name: Repository checkout
+      with:
+        fetch-depth: 0
+        path: extension
+
+    - name: Concatenate SDK Names
+      shell: bash
+      run: |
+        SDKS_VAR="${{ inputs.sdks }}"
+        echo "SDKS_KEY=${SDKS_VAR//[[:blank:]]/}" >> $GITHUB_ENV
+
+    - name: Install Linux dependencies
+      shell: bash
+      if: startsWith(runner.os, 'Linux')
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          gcc-multilib g++-multilib libstdc++6 lib32stdc++6 \
+          libc6-dev libc6-dev-i386 linux-libc-dev \
+          linux-libc-dev:i386 lib32z1-dev ${{ inputs.cc }}
+
+    - name: Select compiler
+      shell: bash
+      if: startsWith(runner.os, 'Linux')
+      run: |
+        echo "CC=${{ inputs.cc }}" >> $GITHUB_ENV
+        echo "CXX=${{ inputs.cxx }}" >> $GITHUB_ENV
+        ${{ inputs.cc }} --version
+        ${{ inputs.cxx }} --version
+
+    - uses: actions/setup-python@v5
+      name: Setup Python
+      with:
+        python-version: 3.13
+
+    - name: Install Python dependencies
+      shell: bash
+      run: |
+        python -m pip install uv
+        python -m uv pip install --upgrade setuptools wheel
+
+    - uses: actions/cache@v4
+      name: Cache dependencies
+      with:
+        path: ${{ inputs.cache-path }}
+        key: ${{ runner.os }}-build-cache-sm${{ inputs.sm-ref }}-mmsource${{ inputs.mm-ref }}-${{ env.SDKS_KEY }}
+
+    - name: Install extension dependencies
+      shell: bash
+      run: |
+        mkdir -p "${{ inputs.cache-path }}"
+        cd "${{ inputs.cache-path }}"
+        shallow_checkout() {
+          # Param 1 is origin
+          # Param 2 is branch
+          # Param 3 is name
+          if [ ! -d "$3" ]; then
+              git clone "$1" --depth 1 --branch "$2" "$3"
+          fi
+          cd "$3"
+          git submodule deinit --all --force
+          git remote set-url origin "$1"
+          git fetch --depth 1 origin "$2"
+          git checkout --force --recurse-submodules FETCH_HEAD
+          git submodule init
+          git submodule update --depth 1
+          cd ..
+        }
+        git config --global advice.detachedHead false
+        for sdk in ${{ inputs.sdks }}; do
+          shallow_checkout "https://github.com/alliedmodders/hl2sdk" "$sdk" "hl2sdk-$sdk"
+        done
+        shallow_checkout "https://github.com/alliedmodders/ambuild" "${{ inputs.ambuild-ref }}" "ambuild"
+        shallow_checkout "https://github.com/alliedmodders/sourcemod" "${{ inputs.sm-ref }}" "sourcemod"
+        shallow_checkout "https://github.com/alliedmodders/metamod-source" "${{ inputs.mm-ref }}" "metamod-source"
+        git config --global advice.detachedHead true
+
+    - name: Install AMBuild
+      shell: bash
+      run: |
+        cd "${{ inputs.cache-path }}"
+        python -m uv pip install ./ambuild
+
+    - name: Build
+      shell: bash
+      working-directory: extension
+      run: |
+        mkdir -p build
+        cd build
+        python ../configure.py --enable-optimize --sdks="${{ inputs.sdks }}" --mms-path="${{ inputs.cache-path }}/metamod-source" --hl2sdk-root="${{ inputs.cache-path }}" --sm-path="${{ inputs.cache-path }}/sourcemod"
+        ambuild
+
+    - name: Set package path output
+      shell: bash
+      run: |
+        PACKAGE_PATH="${{ github.workspace }}/extension/build/package"
+        echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
+        echo "package-path=$PACKAGE_PATH" >> "$GITHUB_OUTPUT"
+
+outputs:
+  package-path:
+    description: "Path to the built package"

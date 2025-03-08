@@ -1,0 +1,41 @@
+name: Release
+
+on: 
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - '*'
+
+env:
+  GIT_USER_EMAIL: "19607336+maxime1907@users.noreply.github.com"
+  GIT_USER_NAME: "SRCDSLab"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set env
+        run: |
+          echo "RELEASE_VERSION=v1" >> $GITHUB_ENV
+          echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+
+      - name: Create a Release
+        uses: elgohr/Github-Release-Action@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          title: ${{ env.RELEASE_VERSION }}-${{ env.SHORT_SHA }}
+
+      - name: Publish new version
+        run: |
+          git config --global user.email "${{ env.GIT_USER_EMAIL }}"
+          git config --global user.name "${{ env.GIT_USER_NAME }}"
+          git tag -fa $RELEASE_VERSION -m "Update $RELEASE_VERSION tag"
+          git push origin $RELEASE_VERSION --force
