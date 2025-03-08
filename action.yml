@@ -1,4 +1,4 @@
-name: "Extension builder"
+name: "AlliedModders extension builder"
 description: "Builds SourceMod and Metamod:Source extensions with customizable SDK support"
 author: "SRCDSLab"
 branding:
@@ -9,6 +9,10 @@ inputs:
   cache-path:
     description: "Dependencies cache path"
     default: "${{ github.workspace }}/cache"
+    required: true
+  extension-path:
+    description:  "Directory where the extension repository is checked out"
+    default: "."
     required: true
   os:
     description: "Operating System"
@@ -35,12 +39,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
-      name: Repository checkout
-      with:
-        fetch-depth: 0
-        path: extension
-
     - name: Concatenate SDK Names
       shell: bash
       run: |
@@ -122,7 +120,7 @@ runs:
 
     - name: Build
       shell: bash
-      working-directory: extension
+      working-directory: ${{ inputs.extension-path }}
       run: |
         mkdir -p build
         cd build
@@ -132,7 +130,7 @@ runs:
     - name: Set package path output
       shell: bash
       run: |
-        PACKAGE_PATH="${{ github.workspace }}/extension/build/package"
+        PACKAGE_PATH="${{ github.workspace }}/${{ inputs.extension-path }}/build/package"
         echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
         echo "package-path=$PACKAGE_PATH" >> "$GITHUB_OUTPUT"
 
