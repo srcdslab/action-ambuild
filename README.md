@@ -51,6 +51,7 @@ jobs:
           ambuild-ref: 'master'
           mm-ref: '1.12-dev'
           sm-ref: '1.12-dev'
+          hl2sdk-manifests-ref: 'master'
           sdks: 'css hl2dm dods tf2'
 
       - name: Upload package
