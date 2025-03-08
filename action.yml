@@ -142,12 +142,13 @@ runs:
         ambuild
 
     - name: Set package path output
+      id: package-path
       shell: bash
       run: |
         PACKAGE_PATH="${{ github.workspace }}/${{ inputs.extension-path }}/build/package"
-        echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
         echo "package-path=$PACKAGE_PATH" >> "$GITHUB_OUTPUT"
 
 outputs:
   package-path:
     description: "Path to the built package"
+    value: ${{ steps.package-path.outputs.package-path }}
