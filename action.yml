@@ -36,8 +36,11 @@ inputs:
   sm-ref:
     description: "SourceMod git ref"
     required: true
+  hl2sdk-manifests-ref:
+    description: "HL2 SDK manifests git ref"
+    required: true
   sdks:
-    description: "HL2 sdk space delimited list"
+    description: "HL2 SDK space delimited list"
     required: true
 
 runs:
@@ -114,6 +117,7 @@ runs:
         shallow_checkout "https://github.com/alliedmodders/ambuild" "${{ inputs.ambuild-ref }}" "ambuild"
         shallow_checkout "https://github.com/alliedmodders/sourcemod" "${{ inputs.sm-ref }}" "sourcemod"
         shallow_checkout "https://github.com/alliedmodders/metamod-source" "${{ inputs.mm-ref }}" "metamod-source"
+        shallow_checkout "https://github.com/alliedmodders/hl2sdk-manifests" "${{ inputs.hl2sdk-manifests-ref }}" "hl2sdk-manifests"
         git config --global advice.detachedHead true
 
     - name: Install AMBuild
@@ -131,8 +135,9 @@ runs:
         python ${{ inputs.configure-path }} \
           --sdks="${{ inputs.sdks }}" \
           --mms-path="${{ inputs.cache-path }}/metamod-source" \
-          --hl2sdk-root="${{ inputs.cache-path }}" \
           --sm-path="${{ inputs.cache-path }}/sourcemod" \
+          --hl2sdk-root="${{ inputs.cache-path }}" \
+          --hl2sdk-manifests-path="${{ inputs.cache-path }}/hl2sdk-manifests" \
           ${{ inputs.configure-additional-flags }}
         ambuild
 
