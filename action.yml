@@ -146,6 +146,7 @@ runs:
       shell: bash
       run: |
         PACKAGE_PATH="${{ github.workspace }}/${{ inputs.extension-path }}/build/package"
+        PACKAGE_PATH=$(realpath "$PACKAGE_PATH")
         echo "package-path=$PACKAGE_PATH" >> "$GITHUB_OUTPUT"
 
 outputs:
