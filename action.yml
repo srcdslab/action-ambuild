@@ -52,6 +52,17 @@ runs:
         SDKS_VAR="${{ inputs.sdks }}"
         echo "SDKS_KEY=${SDKS_VAR//[[:blank:]]/}" >> $GITHUB_ENV
 
+    - name: Add LLVM apt repository
+      shell: bash
+      if: startsWith(runner.os, 'Linux') && startsWith(inputs.cc, 'clang')
+      run: |
+        CLANG_VERSION="${CC_INPUT##*-}"
+        wget https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
+        chmod +x /tmp/llvm.sh
+        sudo /tmp/llvm.sh "$CLANG_VERSION"
+      env:
+        CC_INPUT: ${{ inputs.cc }}
+
     - name: Install Linux dependencies
       shell: bash
       if: startsWith(runner.os, 'Linux')
